@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "Auto Tag Filler (Draft Test 1 Card)",
+  "version": "1.1",
+  "description": "Automatically tests tag filling on any Iconscout draft page (1 card only).",
+  "permissions": ["scripting"],
+  "content_scripts": [
+    {
+      "matches": ["https://contributor.iconscout.com/icon/draft/*"],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "icons": {
+    "128": "icon128.png"
+  }
+}
