@@ -62,16 +62,36 @@
     buttons.forEach(btn => { if (!btn.dataset.clicked) { btn.click(); btn.dataset.clicked = "true"; } });
     await delay(200);
   }
+  
+  log("📋 Auto scroll selesai. Menunggu 5 detik...");
+  await delay(5000);
+  
+  log("🎯 Mengklik 'Add All to Tags' di semua cards...");
+  const allAddButtons = document.querySelectorAll(".addToTag_AT1GT");
+  let clickedCount = 0;
+  for (const btn of allAddButtons) {
+    if (!btn.dataset.finalClicked) {
+      btn.click();
+      btn.dataset.finalClicked = "true";
+      clickedCount++;
+      await delay(50); // Small delay between clicks
+    }
+  }
+  log(`✅ Diklik ${clickedCount} tombol 'Add All to Tags'.`);
+  
   log("✅ Step 1 complete: All tags loaded & added.");
   await delay(3000);
 
   // STEP 2 – Analyze Cards
   log("🎯 Step 2: Memulai analisis cards...");
+  log("📍 Scrolling ke atas untuk memulai analisis...");
   window.scrollTo({ top: 0, behavior: "smooth" });
   await delay(2500);
 
   log("🔍 Mencari cards untuk dianalisis...");
   let cards = document.querySelectorAll(".card_8BZOE");
+  log(`📊 Status cards: ${cards.length} cards ditemukan`);
+  
   if (!cards.length) {
     log("❌ Tidak ada card ditemukan. Mencoba lagi...");
     await delay(2000);
