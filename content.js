@@ -87,10 +87,17 @@
 
   log("✅ Step 1 complete! Bulk tagging done.");
 
+  log("🕓 Step 1 done. Menunggu DOM stabilize (3s)...");
+  await delay(3000);
+  window.scrollTo({ top: 0, behavior: "auto" });
+  await delay(1500);
+  window.scrollBy(0, 400);
+  await delay(1000);
+  log("🔁 Step 2: Mulai analisis card satu per satu...");
+
   //////////////////////////////////////////////////////
   // STEP 2: Go card by card like the stable early logic
   //////////////////////////////////////////////////////
-  log("🔁 Step 2: Mulai analisis card satu per satu...");
 
   // scroll to top so first cards are in viewport (helps lazy stuff on top refresh)
   window.scrollTo({ top: 0, behavior: "auto" });
@@ -152,68 +159,101 @@
   let processed = 0;
   let fixedCount = 0;
 
+  log("🔄 Memastikan semua card ter-render sebelum analisis...");
   for (const card of cards) {
-    processed++;
-
-    // keep viewport moving to help any remaining lazy behavior
-    card.scrollIntoView({ behavior: "auto", block: "start" });
-    await delay(150);
-
-    const titleInput = card.querySelector('input[name^="title-"]');
-    const titleText = titleInput
-      ? (titleInput.value || titleInput.placeholder || "").trim()
-      : "";
-
-    // measure initial count
-    let beforeTags = getCurrentTags(card).length;
-
-    // CASE A: already 10/10
-    if (beforeTags === 10) {
-      log(`✅ [${processed}/${cards.length}] OK (10/10)`);
-      continue;
-    }
-
-    // CASE B: >10, trim down
-    if (beforeTags > 10) {
-      await trimTo10(card);
-      fixedCount++;
-      log(`✂️ [${processed}/${cards.length}] Trimmed to 10`);
-      continue;
-    }
-
-    // CASE C: <10
-    // Step C1: Try Add All (local to this card)
-    if (beforeTags < 10 && getSuggestedTagsCount(card) > 0) {
-      await tryAddAllForCard(card);
-    }
-
-    // re-check
-    let afterAddAll = getCurrentTags(card).length;
-
-    // Step C2: Retry Add All once if still <10 and suggested still exists
-    if (afterAddAll < 10 && getSuggestedTagsCount(card) > 0) {
-      await tryAddAllForCard(card);
-      afterAddAll = getCurrentTags(card).length;
-    }
-
-    // Step C3: If STILL <10 → fallback from title words
-    if (afterAddAll < 10 && titleText) {
-      await fillFromTitleFallback(card, titleText);
-    }
-
-    // Final trim to ensure <=10
-    await trimTo10(card);
-
-    fixedCount++;
-    log(`🧩 [${processed}/${cards.length}] Final ${getCurrentTags(card).length}/10`);
-    await delay(150);
+    card.scrollIntoView({ behavior: "auto", block: "center" });
+    await delay(120);
   }
+  log("✅ Semua card siap dianalisis, mulai Step 2 loop...");
+
+  // Process cards in batches of 4 (parallel processing)
+  for (let i = 0; i < cards.length; i += 4) {
+    const batch = cards.slice(i, i + 4);
+    log(`🔄 Processing batch ${Math.floor(i/4) + 1}/${Math.ceil(cards.length/4)} (${batch.length} cards)`);
+    
+    // Step 1: Scroll each card in batch to trigger lazy loading
+    for (const card of batch) {
+      card.scrollIntoView({ behavior: "auto", block: "center" });
+      await delay(400);
+    }
+    
+    // Step 2: Process all cards in batch concurrently
+    const batchPromises = batch.map(async (card, batchIndex) => {
+      const cardIndex = i + batchIndex + 1;
+      try {
+        const titleInput = card.querySelector('input[name^="title-"]');
+        const titleText = titleInput
+          ? (titleInput.value || titleInput.placeholder || "").trim()
+          : "";
+
+        const getTags = () =>
+          Array.from(card.querySelectorAll("ul li"))
+            .filter(li => !li.classList.contains("addNew_okcFC"));
+
+        const getAddAllBtn = () => card.querySelector(".addToTag_AT1GT");
+
+        let currentCount = getTags().length;
+
+        // CASE A: Sudah 10/10
+        if (currentCount === 10) {
+          log(`✅ [${cardIndex}/${cards.length}] Sudah 10/10`);
+          return;
+        }
+
+        // CASE B: Lebih dari 10 → trim
+        if (currentCount > 10) {
+          await trimTo10(card);
+          log(`✂️ [${cardIndex}/${cards.length}] Trimmed ke 10`);
+          return;
+        }
+
+        // CASE C: Kurang dari 10
+        const btn = getAddAllBtn();
+        if (btn) {
+          btn.click();
+          await delay(500);
+        }
+
+        let after = getTags().length;
+
+        // Retry sekali jika masih kurang
+        if (after < 10 && btn) {
+          btn.click();
+          await delay(600);
+          after = getTags().length;
+        }
+
+        // Fallback dari judul kalau masih kurang
+        if (after < 10 && titleText) {
+          await fillFromTitleFallback(card, titleText);
+        }
+
+        // Trim akhir ke 10
+        await trimTo10(card);
+
+        fixedCount++;
+        log(`🧩 [${cardIndex}/${cards.length}] Final ${getTags().length}/10`);
+
+      } catch (err) {
+        console.warn(`⚠️ Card error, skip ${cardIndex}:`, err);
+      }
+    });
+    
+    // Wait for all cards in batch to complete
+    await Promise.all(batchPromises);
+    processed += batch.length;
+    
+    // Delay between batches to prevent rate limiting
+    if (i + 4 < cards.length) {
+      await delay(500);
+    }
+  }
+
+  log(`🎯 Step 2 complete! ${fixedCount} cards diperbaiki.`);
 
   //////////////////////////////////////////////////////
   // DONE
   //////////////////////////////////////////////////////
-  log(`🎉 Selesai!\nCards diproses: ${cards.length}\nCards diperbaiki: ${fixedCount}`);
-
   progressBox.style.background = "#28a745";
   progressBox.innerText =
     `✅ Selesai!\nTotal cards: ${cards.length}\nDiperbaiki: ${fixedCount}`;
