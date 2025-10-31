@@ -13,6 +13,45 @@
   document.body.appendChild(progressBox);
   const log = (msg) => { console.log(msg); progressBox.innerText = msg; };
 
+  // Wait for page to fully load
+  const waitForPageLoad = async () => {
+    log("⏳ Menunggu halaman selesai loading...");
+    
+    // Wait for document ready state
+    if (document.readyState !== 'complete') {
+      await new Promise(resolve => {
+        const checkReady = () => {
+          if (document.readyState === 'complete') {
+            resolve();
+          } else {
+            setTimeout(checkReady, 100);
+          }
+        };
+        checkReady();
+      });
+    }
+    
+    // Wait for images and resources to load
+    await delay(1000);
+    
+    // Wait for initial cards to appear
+    let attempts = 0;
+    while (attempts < 30) { // Max 15 seconds
+      const cards = document.querySelectorAll(".card_8BZOE");
+      if (cards.length > 0) {
+        log(`✅ Halaman loaded! Ditemukan ${cards.length} cards awal.`);
+        break;
+      }
+      await delay(500);
+      attempts++;
+    }
+    
+    // Additional delay to ensure dynamic content is loaded
+    await delay(2000);
+  };
+
+  await waitForPageLoad();
+
   // STEP 1 – Scroll & Add All
   log("🔄 Step 1: Scrolling to load & Add all tags...");
   let lastY = -1;
