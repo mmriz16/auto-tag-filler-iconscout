@@ -21,18 +21,31 @@ if (window.location.href.includes("contributor.iconscout.com/icon/draft/")) {
     
     // Helper: Trim tags to exactly 10
     const trimTo10 = async (card) => {
-      const tagsList = card.querySelector(".inputTags_YjWW8 ul");
-      if (!tagsList) return;
-      
-      const tags = Array.from(tagsList.querySelectorAll("li")).filter(
-        li => !li.classList.contains("addNew_okcFC")
-      );
-      
-      // Remove excess tags from the end
+      const getTags = () =>
+        Array.from(card.querySelectorAll("ul li"))
+          .filter(li => !li.classList.contains("addNew_okcFC"));
+
+      let tags = getTags();
+
       while (tags.length > 10) {
-        const lastTag = tags.pop();
-        if (lastTag) {
-          lastTag.remove();
+        const last = tags[tags.length - 1];
+        const removeAnchor = last.querySelector("a");
+        if (removeAnchor) {
+          removeAnchor.click();
+          await delay(150); // give DOM time to update
+        }
+        tags = getTags();
+      }
+
+      // safety check: sometimes IconScout doesn't update instantly
+      if (tags.length > 10) {
+        console.warn("⚠️ trimTo10 recheck: still over 10 tags, forcing one-by-one retry");
+        for (let i = tags.length - 1; i >= 10; i--) {
+          const a = tags[i]?.querySelector("a");
+          if (a) {
+            a.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+            await delay(150);
+          }
         }
       }
     };
