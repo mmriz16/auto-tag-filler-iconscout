@@ -204,9 +204,9 @@ if (window.location.href.includes("contributor.iconscout.com/icon/draft/")) {
       try {
         log(`🔄 [${processed}/${cards.length}] Processing card...`);
         
-        // 1. Scroll card into view
-        card.scrollIntoView({ behavior: "smooth", block: "center" });
-        await delay(300);
+        // 1. Scroll card into view (gentle scroll to ensure visibility)
+        card.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+        await delay(200);
         
         // 2. Get current tag count and title
         const tagsList = card.querySelector(".inputTags_YjWW8 ul");
@@ -235,72 +235,72 @@ if (window.location.href.includes("contributor.iconscout.com/icon/draft/")) {
         if (currentCount === 10) {
           // Case A: Already has 10 tags
           log(`✅ [${processed}/${cards.length}] OK (10/10)`);
-          continue;
-        }
-        
-        if (currentCount > 10) {
+          log(`🧩 [${processed}/${cards.length}] Final result → 10/10`);
+          fixedCount++;
+        } else if (currentCount > 10) {
           // Case B: More than 10 tags - trim to 10
           log(`✂️ [${processed}/${cards.length}] Trimming from ${currentCount} to 10...`);
           await trimTo10(card);
           log(`✂️ [${processed}/${cards.length}] Trimmed → 10`);
+          log(`🧩 [${processed}/${cards.length}] Final result → 10/10`);
           fixedCount++;
-          continue;
-        }
-        
-        // Case C: Less than 10 tags - try to add more
-        log(`➕ [${processed}/${cards.length}] Need more tags (${currentCount}/10), looking for Add All button...`);
-        const addAllBtn = card.querySelector(".addToTag_AT1GT");
-        
-        if (addAllBtn) {
-          // First attempt: Click "Add all to Tags"
-          log(`🔘 [${processed}/${cards.length}] Clicking Add All button (attempt 1)...`);
-          addAllBtn.click();
-          await delay(800);
+        } else {
+        } else {
+          // Case C: Less than 10 tags - try to add more
+          log(`➕ [${processed}/${cards.length}] Need more tags (${currentCount}/10), looking for Add All button...`);
+          const addAllBtn = card.querySelector(".addToTag_AT1GT");
           
-          currentCount = getCurrentTagCount();
-          log(`📊 [${processed}/${cards.length}] After attempt 1: ${currentCount} tags`);
-          
-          // Second attempt if still < 10
-          if (currentCount < 10 && addAllBtn) {
-            log(`🔘 [${processed}/${cards.length}] Still need more, clicking Add All button (attempt 2)...`);
+          if (addAllBtn) {
+            // First attempt: Click "Add all to Tags"
+            log(`🔘 [${processed}/${cards.length}] Clicking Add All button (attempt 1)...`);
             addAllBtn.click();
             await delay(800);
+            
             currentCount = getCurrentTagCount();
-            log(`📊 [${processed}/${cards.length}] After attempt 2: ${currentCount} tags`);
+            log(`📊 [${processed}/${cards.length}] After attempt 1: ${currentCount} tags`);
+            
+            // Second attempt if still < 10
+            if (currentCount < 10 && addAllBtn) {
+              log(`🔘 [${processed}/${cards.length}] Still need more, clicking Add All button (attempt 2)...`);
+              addAllBtn.click();
+              await delay(800);
+              currentCount = getCurrentTagCount();
+              log(`📊 [${processed}/${cards.length}] After attempt 2: ${currentCount} tags`);
+            }
+          } else {
+            log(`❌ [${processed}/${cards.length}] No Add All button found`);
           }
-        } else {
-          log(`❌ [${processed}/${cards.length}] No Add All button found`);
-        }
-        
-        // Fallback: Add from title if still < 10
-        if (currentCount < 10 && titleText) {
-          log(`📝 [${processed}/${cards.length}] Using title fallback: "${titleText}"`);
-          await fillFromTitleFallback(card, titleText);
-          currentCount = getCurrentTagCount();
-          log(`📊 [${processed}/${cards.length}] After title fallback: ${currentCount} tags`);
-        }
-        
-        // Check final count before trimming
-        const finalCurrentCount = getCurrentTagCount();
-        
-        if (finalCurrentCount < 10) {
-          log(`⚠️ [${processed}/${cards.length}] Still only ${finalCurrentCount}/10 tags after all attempts`);
-          log(`🧩 [${processed}/${cards.length}] Final result → ${finalCurrentCount}/10 (incomplete)`);
-        } else if (finalCurrentCount > 10) {
-          // Only trim if we have more than 10
-          log(`🔧 [${processed}/${cards.length}] Final trim to ensure exactly 10 (from ${finalCurrentCount})...`);
-          await trimTo10(card);
-          log(`✅ [${processed}/${cards.length}] trimTo10 completed successfully`);
           
-          const finalCount = getCurrentTagCount();
-          log(`🧩 [${processed}/${cards.length}] Final result → ${finalCount}/10`);
-        } else {
-          // Exactly 10 tags
-          log(`✅ [${processed}/${cards.length}] Perfect! Exactly 10 tags`);
-          log(`🧩 [${processed}/${cards.length}] Final result → 10/10`);
+          // Fallback: Add from title if still < 10
+          if (currentCount < 10 && titleText) {
+            log(`📝 [${processed}/${cards.length}] Using title fallback: "${titleText}"`);
+            await fillFromTitleFallback(card, titleText);
+            currentCount = getCurrentTagCount();
+            log(`📊 [${processed}/${cards.length}] After title fallback: ${currentCount} tags`);
+          }
+          
+          // Check final count and handle accordingly
+          const finalCurrentCount = getCurrentTagCount();
+          
+          if (finalCurrentCount < 10) {
+            log(`⚠️ [${processed}/${cards.length}] Still only ${finalCurrentCount}/10 tags after all attempts`);
+            log(`🧩 [${processed}/${cards.length}] Final result → ${finalCurrentCount}/10 (incomplete)`);
+          } else if (finalCurrentCount > 10) {
+            // Only trim if we have more than 10
+            log(`🔧 [${processed}/${cards.length}] Final trim to ensure exactly 10 (from ${finalCurrentCount})...`);
+            await trimTo10(card);
+            log(`✅ [${processed}/${cards.length}] trimTo10 completed successfully`);
+            
+            const finalCount = getCurrentTagCount();
+            log(`🧩 [${processed}/${cards.length}] Final result → ${finalCount}/10`);
+          } else {
+            // Exactly 10 tags
+            log(`✅ [${processed}/${cards.length}] Perfect! Exactly 10 tags`);
+            log(`🧩 [${processed}/${cards.length}] Final result → 10/10`);
+          }
+          
+          fixedCount++;
         }
-        
-        fixedCount++;
         
       } catch (err) {
         console.error(`❌ Error processing card ${processed}:`, err);
