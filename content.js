@@ -157,25 +157,28 @@ if (window.location.href.includes("contributor.iconscout.com/icon/draft/")) {
     // STEP 2: PER-CARD PROCESSING
     //////////////////////////////////////////////////////
     
-    // Find all cards
-    const cards = Array.from(document.querySelectorAll(".card_8BZOE"));
-    
-    if (cards.length === 0) {
-      log("❌ No cards found! Make sure you're on the draft page.");
-      progressBox.style.background = "#dc3545";
-      return;
-    }
-    
-    log(`🎯 Found ${cards.length} cards. Processing sequentially...`);
-    
-    let processed = 0;
-    let fixedCount = 0;
+    try {
+      // Find all cards
+      const cards = Array.from(document.querySelectorAll(".card_8BZOE"));
+      
+      if (cards.length === 0) {
+        log("❌ No cards found! Make sure you're on the draft page.");
+        progressBox.style.background = "#dc3545";
+        return;
+      }
+      
+      log(`🎯 Found ${cards.length} cards. Processing sequentially...`);
+      
+      let processed = 0;
+      let fixedCount = 0;
     
     // Process each card one by one
     for (const card of cards) {
       processed++;
       
       try {
+        log(`🔄 [${processed}/${cards.length}] Processing card...`);
+        
         // 1. Scroll card into view
         card.scrollIntoView({ behavior: "smooth", block: "center" });
         await delay(300);
@@ -189,6 +192,8 @@ if (window.location.href.includes("contributor.iconscout.com/icon/draft/")) {
           continue;
         }
         
+        log(`🔍 [${processed}/${cards.length}] Found tags container, checking count...`);
+        
         const getCurrentTagCount = () => 
           Array.from(tagsList.querySelectorAll("li")).filter(
             li => !li.classList.contains("addNew_okcFC")
@@ -199,6 +204,7 @@ if (window.location.href.includes("contributor.iconscout.com/icon/draft/")) {
           : "";
         
         let currentCount = getCurrentTagCount();
+        log(`📊 [${processed}/${cards.length}] Current tag count: ${currentCount}`);
         
         // 3. Apply logic based on tag count
         if (currentCount === 10) {
@@ -209,6 +215,7 @@ if (window.location.href.includes("contributor.iconscout.com/icon/draft/")) {
         
         if (currentCount > 10) {
           // Case B: More than 10 tags - trim to 10
+          log(`✂️ [${processed}/${cards.length}] Trimming from ${currentCount} to 10...`);
           await trimTo10(card);
           log(`✂️ [${processed}/${cards.length}] Trimmed → 10`);
           fixedCount++;
@@ -216,39 +223,49 @@ if (window.location.href.includes("contributor.iconscout.com/icon/draft/")) {
         }
         
         // Case C: Less than 10 tags - try to add more
+        log(`➕ [${processed}/${cards.length}] Need more tags (${currentCount}/10), looking for Add All button...`);
         const addAllBtn = card.querySelector(".addToTag_AT1GT");
         
         if (addAllBtn) {
           // First attempt: Click "Add all to Tags"
+          log(`🔘 [${processed}/${cards.length}] Clicking Add All button (attempt 1)...`);
           addAllBtn.click();
           await delay(800);
           
           currentCount = getCurrentTagCount();
+          log(`📊 [${processed}/${cards.length}] After attempt 1: ${currentCount} tags`);
           
           // Second attempt if still < 10
           if (currentCount < 10 && addAllBtn) {
+            log(`🔘 [${processed}/${cards.length}] Still need more, clicking Add All button (attempt 2)...`);
             addAllBtn.click();
             await delay(800);
             currentCount = getCurrentTagCount();
+            log(`📊 [${processed}/${cards.length}] After attempt 2: ${currentCount} tags`);
           }
+        } else {
+          log(`❌ [${processed}/${cards.length}] No Add All button found`);
         }
         
         // Fallback: Add from title if still < 10
         if (currentCount < 10 && titleText) {
+          log(`📝 [${processed}/${cards.length}] Using title fallback: "${titleText}"`);
           await fillFromTitleFallback(card, titleText);
           currentCount = getCurrentTagCount();
+          log(`📊 [${processed}/${cards.length}] After title fallback: ${currentCount} tags`);
         }
         
         // Final trim to ensure exactly 10
+        log(`🔧 [${processed}/${cards.length}] Final trim to ensure exactly 10...`);
         await trimTo10(card);
         
         const finalCount = getCurrentTagCount();
-        log(`🧩 [${processed}/${cards.length}] Added → ${finalCount}/10`);
+        log(`🧩 [${processed}/${cards.length}] Final result → ${finalCount}/10`);
         fixedCount++;
         
       } catch (err) {
-        console.warn(`⚠️ Error processing card ${processed}:`, err);
-        log(`⚠️ [${processed}/${cards.length}] Error, skipping`);
+        console.error(`❌ Error processing card ${processed}:`, err);
+        log(`⚠️ [${processed}/${cards.length}] Error: ${err.message}, skipping`);
       }
       
       // Delay before next card
@@ -264,6 +281,13 @@ if (window.location.href.includes("contributor.iconscout.com/icon/draft/")) {
     progressBox.style.background = "#28a745";
     progressBox.innerText = 
       `✅ Auto-Tagging Complete!\nTotal cards: ${cards.length}\nFixed: ${fixedCount}`;
+      
+    } catch (stepError) {
+      console.error("❌ Critical error in Step 2:", stepError);
+      log(`❌ Critical error in Step 2: ${stepError.message}`);
+      progressBox.style.background = "#dc3545";
+      progressBox.innerText = `❌ Error: ${stepError.message}`;
+    }
     
   })();
 }
