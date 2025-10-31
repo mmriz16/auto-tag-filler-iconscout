@@ -63,14 +63,24 @@
     await delay(200);
   }
   log("✅ Step 1 complete: All tags loaded & added.");
-  await delay(2000);
+  await delay(3000);
 
   // STEP 2 – Analyze Cards
+  log("🎯 Step 2: Memulai analisis cards...");
   window.scrollTo({ top: 0, behavior: "smooth" });
-  await delay(1500);
+  await delay(2500);
 
-  const cards = document.querySelectorAll(".card_8BZOE");
-  if (!cards.length) return log("❌ Tidak ada card ditemukan.");
+  log("🔍 Mencari cards untuk dianalisis...");
+  let cards = document.querySelectorAll(".card_8BZOE");
+  if (!cards.length) {
+    log("❌ Tidak ada card ditemukan. Mencoba lagi...");
+    await delay(2000);
+    cards = document.querySelectorAll(".card_8BZOE");
+    if (!cards.length) return log("❌ Gagal menemukan cards setelah retry.");
+    log(`✅ Ditemukan ${cards.length} cards setelah retry.`);
+  } else {
+    log(`✅ Ditemukan ${cards.length} cards untuk dianalisis.`);
+  }
 
   const getTags = (card) =>
     Array.from(card.querySelectorAll("ul li"))
@@ -94,8 +104,12 @@
   };
 
   let processed = 0, fixed = 0;
+  log(`🚀 Memulai pemrosesan ${cards.length} cards...`);
+  
   for (const card of cards) {
     processed++;
+    log(`🔄 Memproses card ${processed}/${cards.length}...`);
+    
     const titleInput = card.querySelector('input[name^="title-"]');
     const title = titleInput?.value.trim() || titleInput?.placeholder || "";
     let tags = getTags(card);
