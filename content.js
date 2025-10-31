@@ -245,7 +245,6 @@ if (window.location.href.includes("contributor.iconscout.com/icon/draft/")) {
           log(`🧩 [${processed}/${cards.length}] Final result → 10/10`);
           fixedCount++;
         } else {
-        } else {
           // Case C: Less than 10 tags - try to add more
           log(`➕ [${processed}/${cards.length}] Need more tags (${currentCount}/10), looking for Add All button...`);
           const addAllBtn = card.querySelector(".addToTag_AT1GT");
