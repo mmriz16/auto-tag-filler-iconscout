@@ -21,32 +21,61 @@ if (window.location.href.includes("contributor.iconscout.com/icon/draft/")) {
     
     // Helper: Trim tags to exactly 10
     const trimTo10 = async (card) => {
-      const getTags = () =>
-        Array.from(card.querySelectorAll("ul li"))
-          .filter(li => !li.classList.contains("addNew_okcFC"));
+      try {
+        const getTags = () =>
+          Array.from(card.querySelectorAll("ul li"))
+            .filter(li => !li.classList.contains("addNew_okcFC"));
 
-      let tags = getTags();
-
-      while (tags.length > 10) {
-        const last = tags[tags.length - 1];
-        const removeAnchor = last.querySelector("a");
-        if (removeAnchor) {
-          removeAnchor.click();
-          await delay(150); // give DOM time to update
+        let tags = getTags();
+        const initialCount = tags.length;
+        
+        if (tags.length <= 10) {
+          console.log(`✅ trimTo10: Already ${tags.length} tags, no trimming needed`);
+          return;
         }
-        tags = getTags();
-      }
-
-      // safety check: sometimes IconScout doesn't update instantly
-      if (tags.length > 10) {
-        console.warn("⚠️ trimTo10 recheck: still over 10 tags, forcing one-by-one retry");
-        for (let i = tags.length - 1; i >= 10; i--) {
-          const a = tags[i]?.querySelector("a");
-          if (a) {
-            a.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-            await delay(150);
+        
+        console.log(`✂️ trimTo10: Starting with ${tags.length} tags, need to trim to 10`);
+        
+        let attempts = 0;
+        const maxAttempts = 20; // Prevent infinite loop
+        
+        while (tags.length > 10 && attempts < maxAttempts) {
+          attempts++;
+          const last = tags[tags.length - 1];
+          const removeAnchor = last?.querySelector("a");
+          
+          if (removeAnchor) {
+            console.log(`🗑️ trimTo10: Attempt ${attempts} - removing tag, current count: ${tags.length}`);
+            removeAnchor.click();
+            await delay(150); // give DOM time to update
+            tags = getTags();
+          } else {
+            console.warn(`⚠️ trimTo10: No remove anchor found on attempt ${attempts}`);
+            break;
           }
         }
+
+        // safety check: sometimes IconScout doesn't update instantly
+        if (tags.length > 10) {
+          console.warn(`⚠️ trimTo10: Still ${tags.length} tags after ${attempts} attempts, trying forced retry`);
+          
+          for (let i = tags.length - 1; i >= 10 && i < tags.length; i--) {
+            const a = tags[i]?.querySelector("a");
+            if (a) {
+              console.log(`🔧 trimTo10: Force removing tag at index ${i}`);
+              a.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+              await delay(150);
+              tags = getTags(); // Refresh tags after each removal
+            }
+          }
+        }
+        
+        const finalCount = getTags().length;
+        console.log(`✅ trimTo10: Completed - ${initialCount} → ${finalCount} tags`);
+        
+      } catch (error) {
+        console.error("❌ Error in trimTo10:", error);
+        throw error;
       }
     };
     
@@ -258,6 +287,7 @@ if (window.location.href.includes("contributor.iconscout.com/icon/draft/")) {
         // Final trim to ensure exactly 10
         log(`🔧 [${processed}/${cards.length}] Final trim to ensure exactly 10...`);
         await trimTo10(card);
+        log(`✅ [${processed}/${cards.length}] trimTo10 completed successfully`);
         
         const finalCount = getCurrentTagCount();
         log(`🧩 [${processed}/${cards.length}] Final result → ${finalCount}/10`);
@@ -269,7 +299,9 @@ if (window.location.href.includes("contributor.iconscout.com/icon/draft/")) {
       }
       
       // Delay before next card
+      log(`⏳ [${processed}/${cards.length}] Waiting 250ms before next card...`);
       await delay(250);
+      log(`➡️ Moving to next card...`);
     }
     
     //////////////////////////////////////////////////////
