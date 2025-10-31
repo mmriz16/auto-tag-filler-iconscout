@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Auto Tag Filler (Draft Test 1 Card)",
-  "version": "1.1",
-  "description": "Automatically tests tag filling on any Iconscout draft page (1 card only).",
+  "name": "Auto Tag Filler - 2 Step Smart Mode",
+  "version": "2.0",
+  "description": "Smart 2-step auto tagging: scroll & add all tags, then optimize to exactly 10 tags per icon.",
   "permissions": ["scripting"],
   "content_scripts": [
     {
