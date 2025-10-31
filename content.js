@@ -176,10 +176,6 @@ if (window.location.href.includes("contributor.iconscout.com/icon/draft/")) {
     log("🌀 Reached bottom, waiting 2 seconds...");
     await delay(2000);
     
-    // Scroll back to top
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    await delay(1000);
-    
     log("✅ Step 1 done. Starting per-card tagging...");
     
     //////////////////////////////////////////////////////
@@ -284,13 +280,26 @@ if (window.location.href.includes("contributor.iconscout.com/icon/draft/")) {
           log(`📊 [${processed}/${cards.length}] After title fallback: ${currentCount} tags`);
         }
         
-        // Final trim to ensure exactly 10
-        log(`🔧 [${processed}/${cards.length}] Final trim to ensure exactly 10...`);
-        await trimTo10(card);
-        log(`✅ [${processed}/${cards.length}] trimTo10 completed successfully`);
+        // Check final count before trimming
+        const finalCurrentCount = getCurrentTagCount();
         
-        const finalCount = getCurrentTagCount();
-        log(`🧩 [${processed}/${cards.length}] Final result → ${finalCount}/10`);
+        if (finalCurrentCount < 10) {
+          log(`⚠️ [${processed}/${cards.length}] Still only ${finalCurrentCount}/10 tags after all attempts`);
+          log(`🧩 [${processed}/${cards.length}] Final result → ${finalCurrentCount}/10 (incomplete)`);
+        } else if (finalCurrentCount > 10) {
+          // Only trim if we have more than 10
+          log(`🔧 [${processed}/${cards.length}] Final trim to ensure exactly 10 (from ${finalCurrentCount})...`);
+          await trimTo10(card);
+          log(`✅ [${processed}/${cards.length}] trimTo10 completed successfully`);
+          
+          const finalCount = getCurrentTagCount();
+          log(`🧩 [${processed}/${cards.length}] Final result → ${finalCount}/10`);
+        } else {
+          // Exactly 10 tags
+          log(`✅ [${processed}/${cards.length}] Perfect! Exactly 10 tags`);
+          log(`🧩 [${processed}/${cards.length}] Final result → 10/10`);
+        }
+        
         fixedCount++;
         
       } catch (err) {
