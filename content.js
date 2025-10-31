@@ -110,16 +110,17 @@
       const last = getTags(card).at(-1);
       const btn = last?.querySelector("a svg");
       if (btn) btn.parentElement.click();
-      await delay(80);
+      await delay(30); // Reduced delay
     }
   };
+  
   const addSuggested = async (card) => {
     const sug = card.querySelectorAll(".suggestedTags_bXHhf ul li");
     for (const s of sug) {
       if (getTags(card).length >= 10) break;
       const addBtn = s.querySelector("span svg");
       if (addBtn) s.click();
-      await delay(100);
+      await delay(40); // Reduced delay
     }
   };
 
@@ -128,47 +129,51 @@
   
   for (const card of cards) {
     processed++;
-    log(`🔄 Memproses card ${processed}/${cards.length}...`);
     
-    const titleInput = card.querySelector('input[name^="title-"]');
-    const title = titleInput?.value.trim() || titleInput?.placeholder || "";
     let tags = getTags(card);
+    const tagCount = tags.length;
 
-    if (tags.length === 10) {
-      log(`✅ [${processed}/${cards.length}] OK`);
+    // Skip jika sudah 10
+    if (tagCount === 10) {
+      if (processed % 10 === 0) log(`✅ [${processed}/${cards.length}] Batch OK`);
       continue;
     }
 
-    // Lebih dari 10 → trim
-    if (tags.length > 10) {
+    // Trim jika lebih dari 10
+    if (tagCount > 10) {
       await trimTo10(card);
-      log(`✂️ [${processed}/${cards.length}] Trimmed to 10`);
       fixed++;
+      if (processed % 5 === 0) log(`✂️ [${processed}/${cards.length}] Trimmed batch`);
       continue;
     }
 
-    // Kurang dari 10 → coba dari suggested
-    await addSuggested(card);
-    tags = getTags(card);
-
-    // Kalau masih kurang → ambil dari title
-    if (tags.length < 10 && title) {
-      const words = title.replace(/[^a-zA-Z0-9\\s]/g, "").split(/\\s+/);
-      for (const w of words) {
-        if (!w.trim()) continue;
-        if (getTags(card).length >= 10) break;
-        const input = card.querySelector(".addNew_okcFC input");
-        if (input) {
-          input.value = w.toLowerCase();
-          input.dispatchEvent(new Event("input", { bubbles: true }));
-          input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
-          await delay(150);
+    // Add jika kurang dari 10
+    if (tagCount < 10) {
+      // Coba dari suggested tags dulu
+      await addSuggested(card);
+      
+      // Jika masih kurang, ambil dari title
+      if (getTags(card).length < 10) {
+        const titleInput = card.querySelector('input[name^="title-"]');
+        const title = titleInput?.value.trim() || titleInput?.placeholder || "";
+        
+        if (title) {
+          const words = title.replace(/[^a-zA-Z0-9\\s]/g, "").split(/\\s+/);
+          for (const w of words) {
+            if (!w.trim() || getTags(card).length >= 10) break;
+            const input = card.querySelector(".addNew_okcFC input");
+            if (input) {
+              input.value = w.toLowerCase();
+              input.dispatchEvent(new Event("input", { bubbles: true }));
+              input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+              await delay(50); // Reduced delay
+            }
+          }
         }
       }
       fixed++;
+      if (processed % 5 === 0) log(`🧩 [${processed}/${cards.length}] Added batch`);
     }
-
-    log(`🧩 [${processed}/${cards.length}] Fixed (${getTags(card).length}/10)`);
   }
 
   log(`🎉 Selesai! ${cards.length} ikon diproses, ${fixed} diperbaiki.`);
